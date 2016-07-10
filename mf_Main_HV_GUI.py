@@ -24,7 +24,8 @@ record = 0
 #decide if we record variables to text file or not
 
 
-slack = Slacker('xoxb-44847750660-eYVraklA1Aog95VzBv1hx4V0') #api token        
+# NEED TO GENERATE ANOTHER SLACK API TOKEN AND PUT IT HERE
+#slack = Slacker('') #api token        
 slackMessage = "" #can put extra info into the slack message here                                        
 print("Slack API set up")
 
