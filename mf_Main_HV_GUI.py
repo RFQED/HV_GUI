@@ -650,7 +650,6 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI.Ui_MainWindow):
         print(PowerList)
     
     def plotlyPressed(self):
-        #plotly.tools.set_credentials_file(username='GM2UOL', api_key='yovoguw7q0')
         
         with open('plot.ly.config.json') as config_file:
             plotly_user_config = json.load(config_file)
