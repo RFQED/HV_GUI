@@ -46,145 +46,153 @@ while True:
             can_Read = False
             
     if can_Read == True:
-
-   	 try:
-   	     output_file = open(output_file_name, 'a', os.O_NONBLOCK) #none blocking so can write in one file and read from another
-   	 except IOError:
-   	     print("Can not open HV Data file to save to")
+        try:
+            output_file = open(output_file_name, 'a', os.O_NONBLOCK) #none blocking so can write in one file and read from another
+        except IOError:
+            print("Can not open HV Data file to save to")
    	
-   	 ser.write("1".encode('ASCII')) #make sure supply is on top menu
-   	 ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
-   	 #time.sleep(shortDelay)
+        ser.write("1".encode('ASCII')) #make sure supply is on top menu
+        ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
+        #time.sleep(shortDelay)
    	
-   	 ser.write("A".encode('ASCII')) #change to the display params window
-   	 ser.read(8192).decode() #if you dont do something with the serial data waiting on the line it will stay there
+        ser.write("A".encode('ASCII')) #change to the display params window
+        ser.read(8192).decode() #if you dont do something with the serial data waiting on the line it will stay there
    	 #time.sleep(shortDelay)
-   	 ser.write("o".encode('utf-8')) #refresh params       
+        ser.write("o".encode('utf-8')) #refresh params       
    	 #put try catch around this
-   	 serialInput = ser.read(8192).decode().strip().split('\n') # read 8192 bytes or until timeout (set to 3)
+        serialInput = ser.read(8192).decode().strip().split('\n') # read 8192 bytes or until timeout (set to 3)
    	
-   	 for i in range(0,26):
-   	     serialInput.pop(0) #kills the formatting lines
+        HV_ENABLE = serialInput[22].split(" ")
+        HV_ENABLE_val = HV_ENABLE[26].strip('\r')
+
+        if HV_ENABLE_val not in ["ON","OFF"]:
+            print("HV ENABLE STRING NOT FOUND")
+         
+        for i in range(0,26):
+            serialInput.pop(0) #kills the formatting lines
+             
+        serialInput.pop()#kills the escape sequence chars (not checked this after changing pop(10) to pop() which gets last entry. 
    	
-   	 serialInput.pop()#kills the escape sequence chars (not checked this after changing pop(10) to pop() which gets last entry. 
-   	
-   	 serialDataTemp=[]
-   	 serialDataTmp=[]
-   	 HVData=[]
+        print("HV ENABLE IS " + str(HV_ENABLE_val))
+
+        serialDataTemp=[]
+        serialDataTmp=[]
+        HVData=[]
    	 
-   	 for i in range(0,10):
-   	     serialDataTemp.append(serialInput[i].split(' '))
-   	     serialDataTmp.append([j for j in serialDataTemp[i] if j != ''])#strips empty ,'', from channel vars
-   	     HVData.append([j for j in serialDataTmp[i] if j != '\r'])#strips ,'\r', from channel vars list
+        for i in range(0,10):
+            serialDataTemp.append(serialInput[i].split(' '))
+            serialDataTmp.append([j for j in serialDataTemp[i] if j != ''])#strips empty ,'', from channel vars
+            HVData.append([j for j in serialDataTmp[i] if j != '\r'])#strips ,'\r', from channel vars list
    	     
-   	 for i in range(0,len(HVData)):
-   	     print("CH" + str(i) + " is  -  " +  str(HVData[i]))
+        for i in range(0,len(HVData)):
+            print("CH" + str(i) + " is  -  " +  str(HVData[i]))
    	         
    	     #now here we see if the number of elements (channels) in HVData is = number of channels present.
    	     #if not we press 'p' to go to the next page then there should be number of chans - 9 on this page. 
    	         
-   	 print("Number of channels is " + str(numChsTotal) + ". and Lenght of HVData " + str(len(HVData)))
+        print("Number of channels is " + str(numChsTotal) + ". and Lenght of HVData " + str(len(HVData)))
    	
-   	 while numCr1Chs > len(HVData): #if number of channels in config is > num of channels read, press p to go to next page of channels
-   	     print("in while numCr1Chs > HVDATA -- Number of channels is " + str(numCr1Chs) + ". and Lenght of HVData " + str(len(HVData)))
+        while numCr1Chs > len(HVData): #if number of channels in config is > num of channels read, press p to go to next page of channels
+            print("in while numCr1Chs > HVDATA -- Number of channels is " + str(numCr1Chs) + ". and Lenght of HVData " + str(len(HVData)))
    	
    	     #and get the data from these ones too, save these to end of the HVData list. 
-   	     print("Num of channels is greater than the amount in Serial Data. Pressing P")
-   	     ser.write("p".encode('utf-8')) #go to next page of channels  
-   	     serialInput_P = ser.read(8192).decode().strip().split('\n') # read 8192 bytes or until timeout (set to 3)
+            print("Num of channels is greater than the amount in Serial Data. Pressing P")
+            ser.write("p".encode('utf-8')) #go to next page of channels  
+            serialInput_P = ser.read(8192).decode().strip().split('\n') # read 8192 bytes or until timeout (set to 3)
    	     
-   	     for i in range(0,26):
-   	         serialInput_P.pop(0) #kills the formatting lines
+            for i in range(0,26):
+                serialInput_P.pop(0) #kills the formatting lines
    	
-   	     serialInput_P.pop()#kills the escape sequence chars (not checked this after changing pop(10) to pop() which gets last entry. 
+            serialInput_P.pop()#kills the escape sequence chars (not checked this after changing pop(10) to pop() which gets last entry. 
    	
-   	     serialDataTemp_P=[]
-   	     serialDataTmp_P=[]
+            serialDataTemp_P=[]
+            serialDataTmp_P=[]
    	     
-   	     for i in range(0,len(serialInput_P)):
-   	         serialDataTemp_P.append(serialInput_P[i].split(' '))
-   	         serialDataTmp_P.append([j for j in serialDataTemp_P[i] if j != ''])#strips empty ,'', from channel vars
-   	         HVData.append([j for j in serialDataTmp_P[i] if j != '\r'])#strips ,'\r', from channel vars list
+            for i in range(0,len(serialInput_P)):
+                serialDataTemp_P.append(serialInput_P[i].split(' '))
+                serialDataTmp_P.append([j for j in serialDataTemp_P[i] if j != ''])#strips empty ,'', from channel vars
+                HVData.append([j for j in serialDataTmp_P[i] if j != '\r'])#strips ,'\r', from channel vars list
    	     
-   	     for i in range(0,len(HVData)):
-   	         print(str(HVData[i]))
-   	     print("end of loop")
+            for i in range(0,len(HVData)):
+                print(str(HVData[i]))
+            print("end of loop")
    	                    
-   	     #done with extra channels pressing p (should have check to see if got all channels yet)
+            #done with extra channels pressing p (should have check to see if got all channels yet)
    	     
-   	 print("number of channels is " + str(numChsTotal) + " and number of channels we have read is " + str(len(HVData)))    
+        print("number of channels is " + str(numChsTotal) + " and number of channels we have read is " + str(len(HVData)))    
    	
-   	 del serialDataTemp[:]
-   	 del serialDataTmp[:]
+        del serialDataTemp[:]
+        del serialDataTmp[:]
    	
-   	 if (len(cr2Chs) != 0):
-   	     while numChsTotal >=  len(HVData): #if we have missing cards this may become a problem
+        if (len(cr2Chs) != 0):
+            while numChsTotal >=  len(HVData): #if we have missing cards this may become a problem
                                                 # or if we have cards present but not used and future cards in place that are used.
-   	         print("There are some channels in create #2 also")
-   	         ser.write("1".encode('utf-8')) #go to the main menu
-   	         print(ser.read(9000).decode()) #if you dont do something with the serial data waiting on the line it will stay there
+                print("There are some channels in create #2 also")
+                ser.write("1".encode('utf-8')) #go to the main menu
+                print(ser.read(9000).decode()) #if you dont do something with the serial data waiting on the line it will stay there
    	
-   	         ser.write("i".encode('utf-8')) #go to crate number menu
-   	         ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
+                ser.write("i".encode('utf-8')) #go to crate number menu
+                ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
    	
-   	         ser.write("1".encode('utf-8')) #go to crate number 2   #CHANGE THIS TO TWO WHEN WE HAVE ANOTHER CRATE CONNECTED
-   	         ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
+                ser.write("1".encode('utf-8')) #go to crate number 2   #CHANGE THIS TO TWO WHEN WE HAVE ANOTHER CRATE CONNECTED
+                ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
+                
+                ser.write("A".encode('utf-8')) #display params
+                ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
    	
-   	         ser.write("A".encode('utf-8')) #display params
-   	         ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
-   	
-   	         serialInput = ser.read(8192).decode().strip().split('\n') # read 8192 bytes or until timeout (set to 3)
+                serialInput = ser.read(8192).decode().strip().split('\n') # read 8192 bytes or until timeout (set to 3)
    	    
-   	         for i in range(0,26):
-   	             serialInput.pop(0) #kills the formatting lines
+                for i in range(0,26):
+                    serialInput.pop(0) #kills the formatting lines
    	             
-   	             serialInput.pop()#kills the escape sequence chars (not checked this after changing pop(10) to pop() which gets last entry. 
+                    serialInput.pop()#kills the escape sequence chars (not checked this after changing pop(10) to pop() which gets last entry. 
    	
-   	             serialDataTemp=[]
-   	             serialDataTmp=[]
-   	             HVData=[]
+                    serialDataTemp=[]
+                    serialDataTmp=[]
+                    HVData=[]
    	         
-   	         for i in range(0,10):
-   	             serialDataTemp.append(serialInput[i].split(' '))
-   	             serialDataTmp.append([j for j in serialDataTemp[i] if j != ''])#strips empty ,'', from channel vars
-   	             HVData.append([j for j in serialDataTmp[i] if j != '\r'])#strips ,'\r', from channel vars list
+                for i in range(0,10):
+                    serialDataTemp.append(serialInput[i].split(' '))
+                    serialDataTmp.append([j for j in serialDataTemp[i] if j != ''])#strips empty ,'', from channel vars
+                    HVData.append([j for j in serialDataTmp[i] if j != '\r'])#strips ,'\r', from channel vars list
    	
    	
-   	 if numChsTotal <= len(HVData):
-   	     print("got all the channels data")
-   	     currentTimeOnly = time.strftime("%H:%M:%S")
-   	     currentDateOnly = time.strftime("%d/%m/%Y")
-   	     datetime = currentTimeOnly + " " + currentDateOnly
-   	     output_file.write(datetime + "\n")
+        if numChsTotal <= len(HVData):
+            print("got all the channels data")
+            currentTimeOnly = time.strftime("%H:%M:%S")
+            currentDateOnly = time.strftime("%d/%m/%Y")
+            datetime = currentTimeOnly + " " + currentDateOnly + " " + HV_ENABLE_val
+            output_file.write(datetime + "\n")
    	     
-   	     for i in range(0,numChsTotal):
-   	         if HVData[i][10]=='TRIP':   #TRIP MESSAGE MAY BE DIFFERENT THAN THIS 'OVC', 'OVV' check. 
-   	             print(HVData[i][0] + " has TRIPPED") 
-   	             #send err to MIDAS
+            for i in range(0,numChsTotal):
+                if HVData[i][10]=='TRIP':   #TRIP MESSAGE MAY BE DIFFERENT THAN THIS 'OVC', 'OVV' check. 
+                    print(HVData[i][0] + " has TRIPPED") 
+                    #send err to MIDAS
    	
-   	     for ch in HVData:
-   	         for elem in ch:
-   	             try:
-   	                 output_file.write(elem.strip())
-   	                 output_file.write(" ")
+            for ch in HVData:
+                for elem in ch:
+                    try:
+                        output_file.write(elem.strip())
+                        output_file.write(" ")
    	
-   	             except IOError:
-   	                 print("Saving HV Data to file FAILED")
+                    except IOError:
+                        print("Saving HV Data to file FAILED")
    	         
-   	         output_file.write("\n")
+                output_file.write("\n")
    	
-   	 del serialDataTemp[:]
-   	 del serialDataTmp[:]
-   	 del HVData[:]
-   	 del serialInput[:]
+        del serialDataTemp[:]
+        del serialDataTmp[:]
+        del HVData[:]
+        del serialInput[:]
    	 
    	
-   	 print("done reading")
-   	 output_file.flush()
+        print("done reading")
+        output_file.flush()
 
     if can_Read == False:
         print("Cant read right now")
         time.sleep(5)
+
 '''
         ['CH00', '0', '0', '0', '0', '1', '1', '10', '20', '0', 'OFF'] Ramp Status (optional)
 HVData    [0]  , [1], [2], [3], [4], [5], [6],  [7],  [8], [9],  [10], [11]

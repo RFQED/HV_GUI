@@ -21,13 +21,11 @@ width = 1000
 errorsignal = 0 #errorsignal is used to pass a signal back to MainWindow from ErrorWindow to detect which button has been pressed 
 old_date = 0
 
-
 ser = serial.Serial(serial_addr, baud_rate, timeout=3)
 ser.setDTR(False)
 
-
 class ConnectThread(QtCore.QThread): # connect thread. so we can constantly read data
-    data_downloaded = QtCore.pyqtSignal(object , object)
+    data_downloaded = QtCore.pyqtSignal(object , object , object)
     time_diff = QtCore.pyqtSignal(object)
     def __init__(self, url):
         QtCore.QThread.__init__(self)
@@ -50,13 +48,18 @@ class ConnectThread(QtCore.QThread): # connect thread. so we can constantly read
             if old_date != HV_DATA[0]: #'checks to see if the last date entry is new. if it is send data
                 old_date = str(HV_DATA[0])
                 old_date = old_date.strip('[]').strip('\'')
-                                                
+                
+                curr_time, date, HV_ENABLE = old_date.split()
+                #splits the top line of the data into the time, date and the HV enable string
+                #then joins the time and date back again for the difference calc. 
+                
+                old_date = str(curr_time) + " " + str(date) 
                 old_date = datetime.strptime(old_date, '%H:%M:%S %d/%m/%Y')
                 current_time = datetime.now()
                 diff = relativedelta(current_time, old_date) #using the dateutil package
                 #difference between old date - new date. 
 
-                self.data_downloaded.emit(HV_DATA, diff) # data that is sent back. 
+                self.data_downloaded.emit(HV_DATA, diff, HV_ENABLE) # data that is sent back. 
             
             time.sleep(5) #do loop every 5sec
             del HV_DATA[:]  
@@ -185,9 +188,16 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
         self.threads.append(downloader)
         downloader.start()
        
-    def on_data_ready(self, input_data, diff): # shit that happens when data comes back from connectThread
+    def on_data_ready(self, input_data, diff, HV_ENABLE): # shit that happens when data comes back from connectThread
         currentTime = time.strftime("%H:%M:%S %d/%m/%Y")
         font = QtGui.QFont("Courier") 
+
+        self.hv_enable.setText(HV_ENABLE)
+        if HV_ENABLE == "ON":
+            self.hv_enable.setStyleSheet('color: green')
+        if HV_ENABLE == "OFF":
+            self.hv_enable.setStyleSheet('color: black')
+
 
         if (diff.hours == 0) and (diff.minutes == 0):
             self.time_since_update.setText(str(diff.seconds) + "s")
