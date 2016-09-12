@@ -40,11 +40,22 @@ while True:
         line = f.readline()
         line = line.rstrip('\n') #logic for blocking reading while GUI is sending changes 
 
-        if line == "y":
-            can_Read = True
-        if line == "n":
+        if line == "y": #can read
+            can_Read = True 
+        if line == "n": #cant read and paused not acknowledged
             can_Read = False
-            
+            confirmPaused = False
+        if line == "p":#cant read and paused acknowledged
+            can_Read = False
+            confirmPaused = True
+    
+    if can_Read == False and confirmPaused == False:
+        try:
+            with open(can_Read_File, 'w', os.O_NONBLOCK) as f:
+                f.write("p")
+        except IOError:
+            print("Can not write to can_read_file")
+        
     if can_Read == True:
         try:
             output_file = open(output_file_name, 'a', os.O_NONBLOCK) #none blocking so can write in one file and read from another
@@ -53,17 +64,26 @@ while True:
    	
         ser.write("1".encode('ASCII')) #make sure supply is on top menu
         ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
-        #time.sleep(shortDelay)
+
+        time.sleep(shortDelay)
+
+        ser.write("1".encode('ASCII')) #make sure supply is on top menu
+        ser.read(9000).decode() #if you dont do something with the serial data waiting on the line it will stay there
+
+        time.sleep(shortDelay)
    	
         ser.write("A".encode('ASCII')) #change to the display params window
-        ser.read(8192).decode() #if you dont do something with the serial data waiting on the line it will stay there
+        ser.read(9192).decode() #if you dont do something with the serial data waiting on the line it will stay there
    	 #time.sleep(shortDelay)
         ser.write("o".encode('utf-8')) #refresh params       
    	 #put try catch around this
         serialInput = ser.read(8192).decode().strip().split('\n') # read 8192 bytes or until timeout (set to 3)
    	
         HV_ENABLE = serialInput[22].split(" ")
-        HV_ENABLE_val = HV_ENABLE[26].strip('\r')
+        try:
+            HV_ENABLE_val = HV_ENABLE[26].strip('\r')
+        except IndexError:
+            print("Can't find HV_ENABLE in data coming back")
 
         if HV_ENABLE_val not in ["ON","OFF"]:
             print("HV ENABLE STRING NOT FOUND")

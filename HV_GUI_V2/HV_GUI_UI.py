@@ -8235,7 +8235,15 @@ class Ui_MainWindow(object):
         self.M5_3.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-weight:600; vertical-align:super;\">*</span></p></body></html>", None))
         self.M5_0.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-weight:600; vertical-align:super;\">*</span></p></body></html>", None))
         self.M5_2.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-weight:600; vertical-align:super;\">*</span></p></body></html>", None))
-        self.Legend_lbl.setText(_translate("MainWindow", "Black = OFF    Green = ON    Red = TRIP   Blue = RAMP DOWN    Yellow = RAMP UP", None))
+        #self.Legend_lbl.setText(_translate("MainWindow", "Black = OFF    Green = ON    Red = TRIP   Blue = RAMP DOWN    Yellow = RAMP UP     Orange = CH is ON but HV_ENABLE is OFF", None))
+ 
+
+        self.Legend_lbl.setText(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Sans\'; font-size:12pt; font-weight:400; font-style:normal;\">\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Black = OFF    Green = ON    Red = TRIP   Blue = RAMP DOWN    Yellow = RAMP UP     Orange = CH IS ON BUT HV_ENABLE IS OFF  </p></body></html>", None))
+
         self.Tab2_8.setTabText(self.Tab2_8.indexOf(self.tab_1), _translate("MainWindow", "Module Screen", None))
         self.RS_header_1.setText(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"

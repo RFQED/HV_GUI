@@ -11,22 +11,20 @@ import os
 from dateutil.relativedelta import relativedelta
 #https://pypi.python.org/pypi/python-dateutil/2.5.3
 
-global Elements, Limits, minheight, maxheight, height,  width, errorsignal, config, send_to_slack, debug_background_color, debug_text_color, old_date
-Elements = ["V0","I0","RUP","RDN","trip","P"] #RDN = RDW in CAEN
-Limits = [1500, 10, 10, 20, 0, 1]
-minheight = 750
+global Elements,  minheight, maxheight, height,  width, errorsignal, config, old_date
+minheight = 750 #hardcoded, change UI before changing these values 
 maxheight = 900
-height = minheight
-width = 1000
+height = minheight #starts with debug box hidden
+width = 1000 
 errorsignal = 0 #errorsignal is used to pass a signal back to MainWindow from ErrorWindow to detect which button has been pressed 
 old_date = 0
 
 ser = serial.Serial(serial_addr, baud_rate, timeout=3)
-ser.setDTR(False)
+ser.setDTR(False)  #toggle Data Terminal Ready - makes sure all serial data is passed back
 
 class ConnectThread(QtCore.QThread): # connect thread. so we can constantly read data
-    data_downloaded = QtCore.pyqtSignal(object , object , object)
-    time_diff = QtCore.pyqtSignal(object)
+    data_downloaded = QtCore.pyqtSignal(object , object , object) #passing back three objects 
+                                                                  #HV_Data, time diff and HV_ENABLE status
     def __init__(self, url):
         QtCore.QThread.__init__(self)
         self.url = url
@@ -37,30 +35,31 @@ class ConnectThread(QtCore.QThread): # connect thread. so we can constantly read
         HV_DATA = []
         while (RUN == 1): # loop forever
             try:
-                with open(HV_DATA_FILE_NAME) as HV_DATA_FILE:#read the last X lines from the #where X is the amount of channels in the config (+1 for the time)
-                    tail = list(islice(reversed(list(HV_DATA_FILE)), numOfChannels+1) )  
-            except IOError:
-                print("Can not open HV Data file")
-
-            for i in range(len(tail)-1,-1,-1): #puts list ordering back in correct order
-                HV_DATA.append(tail[i].strip().split("\n"))
-
-            if old_date != HV_DATA[0]: #'checks to see if the last date entry is new. if it is send data
-                old_date = str(HV_DATA[0])
-                old_date = old_date.strip('[]').strip('\'')
-                
-                curr_time, date, HV_ENABLE = old_date.split()
-                #splits the top line of the data into the time, date and the HV enable string
-                #then joins the time and date back again for the difference calc. 
-                
-                old_date = str(curr_time) + " " + str(date) 
-                old_date = datetime.strptime(old_date, '%H:%M:%S %d/%m/%Y')
-                current_time = datetime.now()
-                diff = relativedelta(current_time, old_date) #using the dateutil package
-                #difference between old date - new date. 
-
-                self.data_downloaded.emit(HV_DATA, diff, HV_ENABLE) # data that is sent back. 
+                with open(HV_DATA_FILE_NAME) as HV_DATA_FILE:#read the last X lines from the HV_Data_file
+                    tail = list(islice(reversed(list(HV_DATA_FILE)), numOfChannels+1) )   #where X is the amount of channels in the config (+1 for the time)
             
+                for i in range(len(tail)-1,-1,-1): #puts list ordering back in correct order
+                    HV_DATA.append(tail[i].strip().split("\n"))
+
+                if old_date != HV_DATA[0]: #'checks to see if the last date entry is new. if it is send data
+                    old_date = str(HV_DATA[0])
+                    old_date = old_date.strip('[]').strip('\'')
+                
+                    curr_time, date, HV_ENABLE = old_date.split()
+                    #splits the top line of the data into the time, date and the HV enable string
+                    #then joins the time and date back again for the difference calc. 
+                
+                    old_date = str(curr_time) + " " + str(date) 
+                    old_date = datetime.strptime(old_date, '%H:%M:%S %d/%m/%Y')
+                    current_time = datetime.now()
+                    diff = relativedelta(current_time, old_date) #using the dateutil package
+                    #difference between old date - new date. 
+
+                    self.data_downloaded.emit(HV_DATA, diff, HV_ENABLE) # data that is sent back. 
+            
+            except IOError:
+                print("Can not open HV Data file - No data sent to GUI")
+
             time.sleep(5) #do loop every 5sec
             del HV_DATA[:]  
 
@@ -72,15 +71,14 @@ class TimeThread(QtCore.QThread): # time thread. so we can constantly update the
 
     def run(self):
         while True:
-                #sets the labels for date and time
+            #sets the labels for date and time
             currentTimeOnly = time.strftime("%H:%M:%S")
             currentDateOnly = time.strftime("%d/%m/%Y")
             datetime = currentTimeOnly + "|" + currentDateOnly
             self.setTime.emit(datetime) # data that is sent back. 
             time.sleep(1)
                 
-# ====ERROR WINDOW==== #
-
+# ==== ERROR WINDOW ==== #
 class Error_Message(QtGui.QDialog, error_GUI.Ui_Dialog):
     def __init__(self, windowtitle, header, message):
         super(self.__class__, self).__init__()
@@ -102,8 +100,7 @@ class Error_Message(QtGui.QDialog, error_GUI.Ui_Dialog):
             
 # ===/ERROR WINDOW==== #
 
-
-
+# ==== Main UI Window ==== #
 class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
     def __init__(self):                            # allows us to access variables, methods etc in the design.py file
         super(self.__class__, self).__init__()
@@ -118,10 +115,10 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
      # It sets up layout and widgets that are defined
 
         self.setFixedSize(width, height)                # Fixes windows size. Can be resized using def expand below.
-        self.setWindowTitle("CAEN SY127 HV System")
+        self.setWindowTitle("TRACKER - CAEN SY127 HV System")
 
         pixmap = QtGui.QPixmap('g-2-tracker-logo-192.ico')
-        self.gm2_logo.setPixmap(pixmap)
+        self.gm2_logo.setPixmap(pixmap)#top right logo
   
         self.set_button.setEnabled(False)
         self.send_button.setEnabled(False)
@@ -158,38 +155,33 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
         global RUN
         RUN = 1
 
-        with open(can_Read_File, 'w', os.O_NONBLOCK) as f: #allow listener thread to start listening again
-            f.write("y")
-            f.flush()
+        try:
+            with open(can_Read_File, 'w', os.O_NONBLOCK) as f: #allow listener thread to start listening again
+                f.write("y")
+                f.flush()
+            print("Reading HV_DATA_FILE")
+        
+            self.TextBox_btm.moveCursor(QtGui.QTextCursor.End)
+            self.TextBox_btm.insertPlainText("Retrieving data...\n")
+            self.connect_button.setEnabled(False)
+            self.disconnect_button.setEnabled(True)
+            self.set_button.setEnabled(False) 
+            self.send_button.setEnabled(False)
 
-        print("Connect Pressed")
-        self.TextBox_btm.moveCursor(QtGui.QTextCursor.End)
-        self.TextBox_btm.insertPlainText("Retrieving data...\n")
-        self.connect_button.setEnabled(False)
-        self.disconnect_button.setEnabled(True)
-        self.set_button.setEnabled(False)
-        self.send_button.setEnabled(False)
+            downloader = ConnectThread("Passing to Connect ")
+            downloader.data_downloaded.connect(self.on_data_ready)
+            self.threads.append(downloader)
+            downloader.start()
 
 
+        except IOError:
+            print("Can not change can_read status in file. HV_Listner may not be running!")
 
-   #     self.kill_button.setEnabled(True)   #kill button not enabled yet
-
-       # self.plotly_button.setEnabled(True)
-
-        global PowerList
-        PowerList = ["-1"]*9      
-   
-        #for i in range (0,9):
-        #    eval("self.P_" + str(i) + ".setEnabled(True)")     #(Re)Enable all power switches so user can change PowerList.
-
-      #  self.threads = [] 
-        downloader = ConnectThread("Passing to Connect ")
-        downloader.data_downloaded.connect(self.on_data_ready)
-        self.threads.append(downloader)
-        downloader.start()
-       
     def on_data_ready(self, input_data, diff, HV_ENABLE): # shit that happens when data comes back from connectThread
+
+        #might need to put a check in here to ensure data coming is in the right format. 
         currentTime = time.strftime("%H:%M:%S %d/%m/%Y")
+
         font = QtGui.QFont("Courier") 
 
         self.hv_enable.setText(HV_ENABLE)
@@ -203,20 +195,19 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
             self.time_since_update.setText(str(diff.seconds) + "s")
         elif diff.hours == 0:
             self.time_since_update.setText(str(diff.minutes) + "min " + str(diff.seconds) + "s")
-        else:
+        elif diff.days == 0:
             self.time_since_update.setText(str(diff.hours) + "hr " + str(diff.minutes) + "min " + str(diff.seconds) + "s")
-      
-        #HAVE TO CHECK SOMEWHERE THAT IF WE DONT HAVE CARDS RIGHT NEXT TO EACH OTHER THAT THEY WIL COME BACK IN TEH WRONG ORDER 
-        
-        #0,1,2,3
-        #missing card
-        #8,9,10,11
+        else:
+            self.time_since_update.setText(str(diff.days) + "days " + str(diff.hours) + "hrs " + str(diff.minutes) + "mins")
 
-        # could have it so it reads the channel number from the list, strips off the CH then appends a lists element to be that list of the channel it corresponds to.
-        # then go through aftwards filling missing channels with empty-channel. 
-
+        #above sets the correct date since update in the GUI based on the time in the
+        #Current Date - HV data file date. This lets you know how long its been since
+        #the HV module spat data out.
+            
         empty_channel = ["-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1"]
-
+        #fills empty channels with spacers. these -1s are not used in the GUI but stored
+        # to keep everything in correct ordering.
+        
         while (len(input_data) != totalAmountOfOutputs+1):
             input_data.append(empty_channel)
         
@@ -236,16 +227,16 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
 	
 	is a list of lists = HV_DATA
         '''
-        #DOCUMENT BELOW - basic
         # get input_data from file
         # split each elelment in each list to make list of lists
         # re-arrange elements based on channel number
+        # filling blank channels with -1s
+
         self.TextBox_btm.setFont(font)
         global numOfChannels
         self.TextBox_btm.insertPlainText( "   VMON  IMON   V0     V1     I0    I1    RUP   RDW   T  STATUS | " + input_data[0][0] + "\n")
          
         input_data.pop(0)#del date
-
 
         for i in range (0,numOfChannels):
             for j in range (0, len(input_data[i])):
@@ -262,10 +253,8 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
                 
         for i in range(0,totalAmountOfOutputs):
             if (len(HV_DATA_Arranged_list[i]) == 0):
-                #print("Length is zero, put in blank channel data")
                 HV_DATA[i]=empty_channel
             else:
-               # print("HAS DATA IN ALREADY")
                 HV_DATA[i]=HV_DATA_Arranged_list[i]
             
         global glo_input_data
@@ -322,8 +311,16 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
                 eval(Stat_Align_cmd)
 
 
-                if HV_DATA[i][10] == "ON":
+                if HV_DATA[i][10] == "ON": #sets the chceck boxes for power to true
                     power_status = "self.P_"+str(i)+".setChecked(True)"
+                    eval(power_status)
+                
+                elif HV_DATA[i][10] == "OFF": #sets them to false if OFF or TRIP
+                    power_status = "self.P_"+str(i)+".setChecked(False)"
+                    eval(power_status)
+
+                elif HV_DATA[i][10] == "TRIP":
+                    power_status = "self.P_"+str(i)+".setChecked(False)"
                     eval(power_status)
                     
                 if len(HV_DATA[i]) == 12:
@@ -337,7 +334,10 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
                 if (i in module1Chs):
                     Module_Input_Data = [j for j,x in enumerate(module1Chs) if x == i] #finds the input_data number from position of channel number in module input_datas list. 
                     Module_Input_Data = Module_Input_Data[0] #brings module_input_datas to correct number
-                    if HV_DATA[i][10] == 'ON':
+                    if HV_DATA[i][10] == 'ON' and HV_ENABLE == "OFF":
+                        fill_M1 = "self.M1_"+str(Module_Input_Data)+".setStyleSheet('color: orange')"
+                        eval(fill_M1)
+                    elif HV_DATA[i][10] == 'ON' and HV_ENABLE == "ON":
                         fill_M1 = "self.M1_"+str(Module_Input_Data)+".setStyleSheet('color: green')"
                         eval(fill_M1)
                     elif HV_DATA[i][10] == 'OFF':
@@ -349,6 +349,9 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
                     elif  HV_DATA[i][10] == 'OVC':
                         fill_M1 = "self.M1_"+str(Module_Input_Data)+".setStyleSheet('color: pink')"
                         eval(fill_M1)
+
+
+                        # put in overvoltage OVV and undervoltage UNV. 
 
                     if len(HV_DATA[i]) == 12:
                         if (HV_DATA[i][11] == "UP"):
@@ -542,30 +545,40 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
 #CHECK WHAT OCMES OUT OF THE SUPPLY FOR RAMPING STATUS AND TRIP STATUS MESSAGES 
 
     def disconnect(self):
-
         #send signal to the listener to stop listening, so we can send changes. 
         # once changes have been made make sure we change can_read.txt to y 
-
-        with open(can_Read_File, 'w', os.O_NONBLOCK) as f:
-            f.write("n")
-            f.flush()
-
-        print("Disconnect Pressed")
-        can_Read = False
-        global RUN
-        RUN = 0
-        self.disconnect_button.setEnabled(False)
-        self.connect_button.setEnabled(True)
-        self.set_button.setEnabled(True)
-        self.send_button.setEnabled(False)
-
+        try:
+            with open(can_Read_File, 'w', os.O_NONBLOCK) as f:
+                f.write("n")
+                f.flush()
+                confirmPaused = "n"
+                while confirmPaused == "n":
+                    with open(can_Read_File, 'r', os.O_NONBLOCK) as f:
+                        line = f.readline()
+                        confirmPaused = line.rstrip('\n') #logic for blocking reading while GUI is sending changes 
+                    #this waits for Listener to change can_read to p to show its paused and ready for us to send changes
+                    print("Waiting for Paused to be confirmed")
+                    time.sleep(2)
+            
+            print("paused confirmed  | confirmPaused = " + str(confirmPaused))
+            print("Disconnect Pressed")
+            can_Read = False
+            global RUN
+            RUN = 0
+            self.disconnect_button.setEnabled(False)
+            self.connect_button.setEnabled(True)
+            self.set_button.setEnabled(True)
+            self.send_button.setEnabled(False)
+        except IOError:
+            print("Error in disconnect. can not save can_read file")
+            
     def set(self):
 #0    1  2   3   4   5   6    7   8    9 10
 #CH35 0  0   0   0   1   1   10   20   0 ON
-        for i in allChs:
-            print("CH" + str(i) + str(glo_input_data[i]))
         
-
+        #for i in allChs:
+        #    print("CH" + str(i) + str(glo_input_data[i]))
+        
         global final_changes #this holds the changes AFTER they have been checked for limits 
         final_changes = []
         
@@ -621,42 +634,41 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
             else:
                 old_power.append(0)
 
-        print("****************")
-        print("GUI Voltages")
-        print(curr_Voltage)
-        print("file_voltages")
-        print(old_Voltage)
-        print("****************")
-        print("GUI currents")
-        print(curr_current)
-        print("file_currents")
-        print(old_current)
-        print("****************")
-        print("GUI ramp up")
-        print(curr_RUP)
-        print("file ramp up")
-        print(old_RUP)
-        print("****************")
-        print("GUI ramp dn")
-        print(curr_RDN)
-        print("file ramp DN")
-        print(old_RDN)
-        print("****************")
-        print("GUI trip time")
-        print(curr_trip_time)
-        print("file trip")
-        print(old_trip_time)
-        print("****************")
-        print("GUI POWER")
-        print(curr_power)
-        print("old power")
-        print(old_power)
-        print("****************")
-
+        #print("****************")
+        #print("GUI Voltages")
+        #print(curr_Voltage)
+        #print("file_voltages")
+        #print(old_Voltage)
+        #print("****************")
+        #print("GUI currents")
+        #print(curr_current)
+        #print("file_currents")
+        #print(old_current)
+        #print("****************")
+        #print("GUI ramp up")
+        #print(curr_RUP)
+        #print("file ramp up")
+        #print(old_RUP)
+        #print("****************")
+        #print("GUI ramp dn")
+        #print(curr_RDN)
+        #print("file ramp DN")
+        #print(old_RDN)
+        #print("****************")
+        #print("GUI trip time")
+        #print(curr_trip_time)
+        #print("file trip")
+        #print(old_trip_time)
+        #print("****************")
+        #print("GUI POWER")
+        #print(curr_power)
+        #print("old power")
+        #print(old_power)
+        #print("****************")
+        
         changes = [[-1 for x in range(0,7)] for y in range(0,79)] 
         check_changes = [[-1 for x in range(0,7)] for y in range(0,79)] 
 
-            
         #compares GUI values with file values, saves each channel out, filled with -1's for no changes. 
         #need to include power functionality 
         # for power, can have 0 = changed to off     1 = changed to on    -1 = no change. 
@@ -680,18 +692,18 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
 
             if curr_power[i] != old_power[i]:
                 changes[i][6] = int(curr_power[i])
-            print("CH" + str(i) + " is " + str(changes[i]))
-            print("Done")
+            #print("CH" + str(i) + " is " + str(changes[i]))
+           # print("Done")
           
         
         #looks in each channels changes - if contains -1's then dont send to HV changes module 
         # if it contains changes send changes to HV control code.
-        
+        print("-------------------------------")       
         for ch in allChs:
             for value in range(0,7):
                 if (sum(changes[ch])-int(changes[ch][0])) != -6:
                     if changes[ch][value] != -1:
-                        print("Change in CH" + str(ch))
+                        #print("Change in CH" + str(ch))
                         if int(changes[ch][value]) > limits[value]:#Error message will pop up
                             self.dialog = Error_Message("Warning Message", "Value Error" ,"" + str(change_titles[value]) + 
                                                         " limit is " + str(limits[value]) + str(units[value]) + " you entered "
@@ -710,7 +722,10 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
                             #make the send button active if no errors. 
                             self.send_button.setEnabled(True)
                     else:
-                        print("no changes needed for " + change_titles[value])
+                        print("No changes needed for " + change_titles[value])
+            print("-------------------------------")
+            if (sum(changes[ch])-int(changes[ch][0])) == -6:
+                print("No change needed for CH"+str(ch))
 
             if (sum(changes[ch])-int(changes[ch][0])) != -6:
                 final_changes.append(check_changes[ch])
@@ -719,8 +734,8 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
                 #final_changes is the array/list holding the approved changes. which is global and will be used in send. 
             
 
-        print("Final changes are -")
-        print(final_changes)
+        #print("Final changes are -")
+        #print(final_changes)
 #_____________________________________________________________________
 # change_titles = CH |   V0  |  I0  |   RUP   | RDN  |   TRIP | POWER | 
 # units         =  0 |   V   |  uA  |   V/s   |  V/s |   ms   |  NA   |
@@ -756,7 +771,7 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
             ser.write("a".encode('utf-8'))            
             time.sleep(longDelay)
 
-            print("Chaning Values of CH " + str(ch))
+            print("Chaning Values of CH " + str("%02d" % final_changes[ch][0]))
             ser.write("a".encode('utf-8'))            
             time.sleep(longDelay)
 
@@ -844,16 +859,13 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
                 time.sleep(shortDelay)
 
 
-            print("**********************************")
+        ser.write("1".encode('utf-8'))  
         time.sleep(longDelay)
         self.connect_button.click()#click automatically
 
         # start the listener thread again
         # make check button disalbed 
         # make send button disabled. 
-
-
-                    
 
     def kill(self):
         print("Kill button pressed")
@@ -866,47 +878,17 @@ class HV_GUI_App(QtGui.QMainWindow, HV_GUI_UI.Ui_MainWindow):
         print("GUI has been terminated")
         self.deleteLater()
 
-    def expand(self): #setIcon()?
+    def expand(self):
         global minheight, maxheight, height,  width
         if height == minheight:
             self.setFixedSize(width, maxheight)
             height = maxheight
             print("Window expanded.")
-            #self.expand_button.setText("<") #^
         else:
             self.setFixedSize(width, minheight)
             height = minheight
             print("Window contracted.")
-            #self.expand_button.setText(">") #v
 
-    #clicking headers will force all boxes to adopt state of zeroth.
-
-  
-    def V0_title(self):
-        for i in range(1,9):
-            eval("self." + Elements[0] + "_" + str(i) + ".setText(self." + Elements[0] + "_0.text())")
-            #EXAMPLE: above line = self.V0_1.setText(self.V0_0.text()) - for each channel
-        print("Copied contents of " + Elements[0] + "_0 down.")
-
-    def I0_title(self):
-        for i in range(1,9):
-            eval("self." + Elements[1] + "_" + str(i) + ".setText(self." + Elements[1] + "_0.text())")
-        print("Copied contents of " + Elements[1] + "_0 down.")
-    
-    def RUP_title(self):
-        for i in range(1,9):
-            eval("self." + Elements[2] + "_" + str(i) + ".setText(self." + Elements[2] + "_0.text())")
-        print("Copied contents of " + Elements[2] + "_0 down.")
-
-    def RDW_title(self):
-        for i in range(1,9):
-            eval("self." + Elements[3] + "_" + str(i) + ".setText(self." + Elements[3] + "_0.text())")
-        print("Copied contents of " + Elements[3] + "_0 down.")
-
-    def trip_title(self):
-        for i in range(1,9):
-            eval("self." + Elements[4] + "_" + str(i) + ".setText(self." + Elements[4] + "_0.text())")
-        print("Copied contents of " + Elements[4] + "_0 down.")       
 # =============================================================================================
 
 if __name__ == "__main__":
@@ -914,7 +896,6 @@ if __name__ == "__main__":
     window = HV_GUI_App()
     window.show()
     sys.exit(app.exec_())
-
 
 
 #TODO- find a way to stop the autofil when a value is changed to be set
