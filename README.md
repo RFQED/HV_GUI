@@ -6,7 +6,8 @@ Monitoring and Control Software for CAEN SY127 High Voltage Supply
 *The features and the setup of the GUI are discussed in details. Moreover, a simple operating manual is included.*
 
 --- 
-: Will Turner, Talal Albahri and Matt Franks 
+Will Turner, Talal Albahri and Matt Franks 
+
 Department of Physics, University of Liverpool
 
 ----------
