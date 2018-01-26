@@ -1,3 +1,7 @@
+NOTE : Project suspended midway through writing this as we moved away from a python based GUI to a web interface - state found here is unfinished but still may be useful. 
+===================
+
+
 Monitoring and Control Software for CAEN SY127 High Voltage Supply
 ===================
  
